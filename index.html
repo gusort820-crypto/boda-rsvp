@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Confirmación de Asistencia</title>
+
+<!-- FUENTES -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background-image: url('fondo.jpg');
+  background-size: cover;
+  background-position: center;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* TARJETA */
+.card {
+  background: rgba(255, 255, 255, 0.88);
+  padding: 30px;
+  border-radius: 18px;
+  width: 90%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+  backdrop-filter: blur(8px);
+}
+
+/* TITULO */
+h2 {
+  font-family: 'Playfair Display', serif;
+  color: #7a5c2e;
+  margin-bottom: 10px;
+}
+
+/* TEXTO */
+p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 20px;
+  white-space: pre-line;
+}
+
+/* INPUTS */
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+/* BOTONES */
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 25px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#btnSi {
+  background-color: #a67c52;
+  color: white;
+}
+
+#btnSi:hover {
+  background-color: #8c653f;
+}
+
+#btnNo {
+  background-color: #eaeaea;
+  color: #555;
+  margin-top: 10px;
+}
+
+#btnNo:hover {
+  background-color: #d6d6d6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2 id="saludo"></h2>
+  <p id="mensaje"></p>
+
+  <div id="botones">
+    <button id="btnSi">Sí asistiré</button>
+    <button id="btnNo">No podré asistir</button>
+  </div>
+
+  <form id="formulario" style="display:none;">
+    <div id="contenedorInputs"></div>
+    <button type="submit">Confirmar asistencia ✨</button>
+  </form>
+
+  <p id="gracias" style="display:none;"></p>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔧 PEGA TU CONFIG AQUÍ
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhN-HEVraPKiBYuUsKKRhB3cvz18jH_HU",
+  authDomain: "boda-arturo-y-grecia.firebaseapp.com",
+  projectId: "boda-arturo-y-grecia"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 🔎 Obtener código
+const params = new URLSearchParams(window.location.search);
+const codigo = params.get("rsvp");
+
+if (!codigo) {
+  document.body.innerHTML = "<h3>Invitación no válida</h3>";
+  throw new Error("Sin código");
+}
+
+const ref = doc(db, "invitados", codigo);
+const snap = await getDoc(ref);
+
+if (!snap.exists()) {
+  document.body.innerHTML = "<h3>Código no encontrado</h3>";
+  throw new Error("Código inválido");
+}
+
+const data = snap.data();
+
+// 👋 Saludo
+document.getElementById("saludo").innerText = `Hola ${data.nombre}`;
+
+const mensaje = document.getElementById("mensaje");
+const contenedor = document.getElementById("contenedorInputs");
+const formulario = document.getElementById("formulario");
+const botones = document.getElementById("botones");
+const gracias = document.getElementById("gracias");
+
+// 🧠 Mensajes
+if (data.max_invitados === 1) {
+  mensaje.innerText = `Tenemos un lugar reservado para ti.
+Nos gustaría mucho que nos acompañes en este día.
+Agradeceremos confirmes tu asistencia abajo.`;
+} else {
+  mensaje.innerText = `Tenemos reservados ${data.max_invitados} lugares para ustedes.
+Nos gustaría mucho que nos acompañen en este día.
+Agradeceremos confirmen su asistencia abajo, indicando las personas que nos acompañarán.`;
+}
+
+// ✅ BOTÓN SÍ
+document.getElementById("btnSi").addEventListener("click", () => {
+
+  botones.style.display = "none";
+  formulario.style.display = "block";
+
+  if (data.max_invitados > 1) {
+    for (let i = 0; i < data.max_invitados; i++) {
+      const input = document.createElement("input");
+      input.placeholder = "Nombre del invitado " + (i + 1);
+      contenedor.appendChild(input);
+    }
+  }
+});
+
+// ❌ BOTÓN NO
+document.getElementById("btnNo").addEventListener("click", async () => {
+
+  await updateDoc(ref, {
+    confirmados: 0,
+    asistencia: false,
+    personas: []
+  });
+
+  botones.style.display = "none";
+
+  gracias.style.display = "block";
+  gracias.innerText = "Gracias por avisarnos 💚";
+});
+
+// 💾 CONFIRMAR
+document.getElementById("formulario").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  let personas = [];
+
+  if (data.max_invitados === 1) {
+    personas = [data.nombre];
+  } else {
+    const inputs = contenedor.querySelectorAll("input");
+    personas = Array.from(inputs)
+      .map(i => i.value.trim())
+      .filter(v => v !== "");
+  }
+
+  await updateDoc(ref, {
+    confirmados: personas.length,
+    personas: personas,
+    asistencia: true
+  });
+
+  formulario.style.display = "none";
+
+  gracias.style.display = "block";
+  gracias.innerText = "¡Gracias por confirmar! Nos dará mucho gusto verte 💚";
+});
+</script>
+
+</body>
+</html>
+
