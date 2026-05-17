@@ -10,90 +10,128 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
 
 <style>
+
 body {
   margin: 0;
   font-family: 'Montserrat', sans-serif;
   background-image: url('fondo.jpg');
   background-size: cover;
   background-position: center;
-  height: 100vh;
+  background-repeat: no-repeat;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 /* TARJETA */
+
 .card {
   background: rgba(255, 255, 255, 0.88);
-  padding: 30px;
-  border-radius: 18px;
-  width: 90%;
-  max-width: 360px;
+  padding: 35px 28px;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 390px;
   text-align: center;
   box-shadow: 0 15px 40px rgba(0,0,0,0.12);
   backdrop-filter: blur(8px);
 }
 
 /* TITULO */
+
 h2 {
   font-family: 'Playfair Display', serif;
   color: #7a5c2e;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  font-size: 30px;
+  font-weight: 600;
 }
 
 /* TEXTO */
+
 p {
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.7;
   color: #555;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   white-space: pre-line;
 }
 
 /* INPUTS */
+
 input {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
   border: 1px solid #ddd;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: 'Montserrat', sans-serif;
+}
+
+input:focus {
+  outline: none;
+  border-color: #b08a5a;
 }
 
 /* BOTONES */
+
 button {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border: none;
-  border-radius: 25px;
-  font-size: 15px;
+  border-radius: 30px;
+  font-size: 16px;
   cursor: pointer;
   transition: 0.3s;
+  font-family: 'Montserrat', sans-serif;
 }
 
-#btnSi {
-  background-color: #a67c52;
+/* BOTÓN SÍ */
+
+#btnSi,
+button[type="submit"] {
+  background-color: #b08a5a;
   color: white;
 }
 
-#btnSi:hover {
-  background-color: #8c653f;
+#btnSi:hover,
+button[type="submit"]:hover {
+  background-color: #96724a;
 }
 
+/* BOTÓN NO */
+
 #btnNo {
-  background-color: #eaeaea;
+  background-color: #ececec;
   color: #555;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 #btnNo:hover {
-  background-color: #d6d6d6;
+  background-color: #dddddd;
 }
+
+/* MENSAJE FINAL */
+
+#gracias {
+  color: #7a5c2e;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
 </style>
 </head>
 
 <body>
 
 <div class="card">
+
   <h2 id="saludo"></h2>
+
   <p id="mensaje"></p>
 
   <div id="botones">
@@ -103,122 +141,200 @@ button {
 
   <form id="formulario" style="display:none;">
     <div id="contenedorInputs"></div>
-    <button type="submit">Confirmar asistencia ✨</button>
+
+    <button type="submit">
+      Confirmar asistencia ✨
+    </button>
   </form>
 
   <p id="gracias" style="display:none;"></p>
+
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔧 PEGA TU CONFIG AQUÍ
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc
+
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* FIREBASE */
 
 const firebaseConfig = {
+
   apiKey: "AIzaSyAhN-HEVraPKiBYuUsKKRhB3cvz18jH_HU",
+
   authDomain: "boda-arturo-y-grecia.firebaseapp.com",
+
   projectId: "boda-arturo-y-grecia"
+
 };
 
 const app = initializeApp(firebaseConfig);
+
 const db = getFirestore(app);
 
-// 🔎 Obtener código
+/* OBTENER CÓDIGO */
+
 const params = new URLSearchParams(window.location.search);
+
 const codigo = params.get("rsvp");
 
 if (!codigo) {
+
   document.body.innerHTML = "<h3>Invitación no válida</h3>";
+
   throw new Error("Sin código");
+
 }
 
+/* BUSCAR INVITADO */
+
 const ref = doc(db, "invitados", codigo);
+
 const snap = await getDoc(ref);
 
 if (!snap.exists()) {
+
   document.body.innerHTML = "<h3>Código no encontrado</h3>";
+
   throw new Error("Código inválido");
+
 }
 
 const data = snap.data();
 
-// 👋 Saludo
-document.getElementById("saludo").innerText = `Hola ${data.nombre}`;
+/* ELEMENTOS */
+
+const saludo = document.getElementById("saludo");
 
 const mensaje = document.getElementById("mensaje");
+
 const contenedor = document.getElementById("contenedorInputs");
+
 const formulario = document.getElementById("formulario");
+
 const botones = document.getElementById("botones");
+
 const gracias = document.getElementById("gracias");
 
-// 🧠 Mensajes
-if (data.max_invitados === 1) {
-  mensaje.innerText = `Nos gustaría mucho que nos acompañes en este día tan especial.
+/* SALUDO */
+
+saludo.innerText = `Hola ${data.nombre}`;
+
+/* EVITAR BUGS DE FIREBASE */
+
+const invitados = Number(data.max_invitados || 1);
+
+/* MENSAJE */
+
+if (invitados <= 1) {
+
+  mensaje.innerText =
+`Nos gustaría mucho que nos acompañes en este día tan especial.
 Agradeceremos confirmes tu asistencia abajo.`;
+
 } else {
-  mensaje.innerText = `Nos gustaría mucho que nos acompañen en este día tan especial.
+
+  mensaje.innerText =
+`Nos gustaría mucho que nos acompañen en este día tan especial.
 Por favor, confirmen su asistencia abajo indicando quiénes nos acompañarán.`;
+
 }
 
-// ✅ BOTÓN SÍ
+/* BOTÓN SÍ */
+
 document.getElementById("btnSi").addEventListener("click", () => {
 
   botones.style.display = "none";
+
   formulario.style.display = "block";
 
-  if (data.max_invitados > 1) {
-    for (let i = 0; i < data.max_invitados; i++) {
+  if (invitados > 1) {
+
+    for (let i = 0; i < invitados; i++) {
+
       const input = document.createElement("input");
+
       input.placeholder = "Nombre del invitado " + (i + 1);
+
       contenedor.appendChild(input);
+
     }
+
   }
+
 });
 
-// ❌ BOTÓN NO
+/* BOTÓN NO */
+
 document.getElementById("btnNo").addEventListener("click", async () => {
 
   await updateDoc(ref, {
+
     confirmados: 0,
+
     asistencia: false,
+
     personas: []
+
   });
 
   botones.style.display = "none";
 
   gracias.style.display = "block";
+
   gracias.innerText = "Gracias por avisarnos 💚";
+
 });
 
-// 💾 CONFIRMAR
+/* CONFIRMAR */
+
 document.getElementById("formulario").addEventListener("submit", async (e) => {
+
   e.preventDefault();
 
   let personas = [];
 
-  if (data.max_invitados === 1) {
+  if (invitados <= 1) {
+
     personas = [data.nombre];
+
   } else {
+
     const inputs = contenedor.querySelectorAll("input");
+
     personas = Array.from(inputs)
       .map(i => i.value.trim())
       .filter(v => v !== "");
+
   }
 
   await updateDoc(ref, {
+
     confirmados: personas.length,
+
     personas: personas,
+
     asistencia: true
+
   });
 
   formulario.style.display = "none";
 
   gracias.style.display = "block";
-  gracias.innerText = "¡Gracias por confirmar! Nos dará mucho gusto verte 💚";
+
+  gracias.innerText =
+  "¡Gracias por confirmar! Nos dará mucho gusto verlos 💚";
+
 });
+
 </script>
 
 </body>
 </html>
-
